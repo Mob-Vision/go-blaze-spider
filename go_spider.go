@@ -22,6 +22,7 @@ type TaskHandler struct {
 	GapLimit        int
 	IdleLimit       int
 	WorkerLimit     int
+	SrcCharset      string
 	reqCb           OnRequestCallback
 	rspCb           OnResponseCallback
 	queryCbs        map[string]OnQueryCallback
@@ -98,7 +99,12 @@ func (t *TaskHandler) request(url string) {
 		return
 	}
 
-	content := gbk2utf8(string(resp.String()), "gbk", "utf-8")
+	var content string
+	if len(t.SrcCharset) > 0 {
+		content = gbk2utf8(string(resp.String()), t.SrcCharset, "utf-8")
+	} else {
+		content = string(resp.String())
+	}
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBufferString(content))
 	if err != nil {
@@ -121,6 +127,15 @@ func (t *TaskHandler) Visit(url string) {
 	go func() {
 		t.Queue <- url
 	}()
+}
+
+func TaskOptSrcCharset(charset string) TaskOpt {
+	return func(handler *TaskHandler) {
+		if len(charset) > 0 {
+			handler.SrcCharset = charset
+			return
+		}
+	}
 }
 
 func TaskOptGapLimit(num int) TaskOpt {
