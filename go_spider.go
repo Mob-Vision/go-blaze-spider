@@ -56,7 +56,6 @@ func (t *TaskHandler) Handle() {
 			fmt.Println("total: ", t.QueueTotalNum, " process:", t.QueueProcessNum)
 			time.Sleep(time.Millisecond * time.Duration(t.GapLimit))
 		default:
-			fmt.Println(len(t.Queue))
 			time.Sleep(time.Millisecond * time.Duration(t.IdleLimit))
 		}
 	}
