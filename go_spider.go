@@ -133,7 +133,6 @@ func TaskOptSrcCharset(charset string) TaskOpt {
 	return func(handler *TaskHandler) {
 		if len(charset) > 0 {
 			handler.SrcCharset = charset
-			return
 		}
 	}
 }
@@ -142,7 +141,6 @@ func TaskOptGapLimit(num int) TaskOpt {
 	return func(handler *TaskHandler) {
 		if num > 0 {
 			handler.GapLimit = num
-			return
 		}
 	}
 }
