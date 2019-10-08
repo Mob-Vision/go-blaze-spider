@@ -88,11 +88,15 @@ func (t *TaskHandler) request(url string) {
 		return
 	}
 
-	t.reqCb(url, t.Headers, t.Params, nil)
+	if t.reqCb != nil {
+		t.reqCb(url, t.Headers, t.Params, nil)
+	}
 
 	resp, err := t.Http.Get(url, t.Headers, t.Params)
 
-	t.rspCb(url, resp, err)
+	if t.rspCb != nil {
+		t.rspCb(url, resp, err)
+	}
 
 	if err != nil {
 		fmt.Println(err)
