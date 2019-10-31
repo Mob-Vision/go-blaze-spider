@@ -2,11 +2,16 @@ package go_spider
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/axgle/mahonia"
 	"github.com/imroc/req"
+	"io/ioutil"
+	"log"
 	net_url "net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -30,10 +35,11 @@ type TaskHandler struct {
 	Headers         *req.Header
 	Params          *req.Param
 	Domains         []string
+	Proxies         []string
 	Queue           chan string
 	QueueProcessNum int
 	QueueTotalNum   int
-	Cache           string
+	CachePath       string
 }
 
 func (t *TaskHandler) OnRequest(cb OnRequestCallback) {
@@ -88,6 +94,29 @@ func (t *TaskHandler) request(url string) {
 		return
 	}
 
+	cacheId := t.CachePath + "/" + cryptmd5(url) + ".cache"
+
+	if len(t.CachePath) > 0 {
+		err := os.MkdirAll(t.CachePath, os.ModePerm)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		if fileExists(cacheId) {
+			dat, err := ioutil.ReadFile(cacheId)
+			doc, err := goquery.NewDocumentFromReader(bytes.NewBufferString(string(dat)))
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			for k, q := range t.queryCbs {
+				q(url, doc.Find(k))
+			}
+			return
+		}
+	}
+
 	if t.reqCb != nil {
 		t.reqCb(url, t.Headers, t.Params, nil)
 	}
@@ -110,6 +139,11 @@ func (t *TaskHandler) request(url string) {
 		content = string(resp.String())
 	}
 
+	if len(t.CachePath) > 0 {
+		err := ioutil.WriteFile(cacheId, []byte(content), os.ModePerm)
+		fmt.Println(err)
+	}
+
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBufferString(content))
 	if err != nil {
 		fmt.Println(err)
@@ -119,6 +153,9 @@ func (t *TaskHandler) request(url string) {
 	for k, q := range t.queryCbs {
 		q(url, doc.Find(k))
 	}
+
+	time.Sleep(time.Hour)
+
 }
 
 func (t *TaskHandler) Clone() *TaskHandler {
@@ -131,6 +168,22 @@ func (t *TaskHandler) Visit(url string) {
 	go func() {
 		t.Queue <- url
 	}()
+}
+
+func TaskOptCache(path string) TaskOpt {
+	return func(handler *TaskHandler) {
+		if len(path) > 0 {
+			handler.CachePath = path
+		}
+	}
+}
+
+func TaskOptProxy(proxy []string) TaskOpt {
+	return func(handler *TaskHandler) {
+		if len(proxy) > 0 {
+			handler.Proxies = proxy
+		}
+	}
 }
 
 func TaskOptSrcCharset(charset string) TaskOpt {
@@ -236,4 +289,18 @@ func gbk2utf8(src string, srcCode string, tagCode string) string {
 	tagCoder := mahonia.NewDecoder(tagCode)
 	_, cdata, _ := tagCoder.Translate([]byte(srcResult), true)
 	return string(cdata)
+}
+
+func cryptmd5(text string) string {
+	hash := md5.New()
+	hash.Write([]byte(text))
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
