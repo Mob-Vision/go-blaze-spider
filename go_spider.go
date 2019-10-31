@@ -153,9 +153,6 @@ func (t *TaskHandler) request(url string) {
 	for k, q := range t.queryCbs {
 		q(url, doc.Find(k))
 	}
-
-	time.Sleep(time.Hour)
-
 }
 
 func (t *TaskHandler) Clone() *TaskHandler {
