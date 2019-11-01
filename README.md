@@ -2,7 +2,6 @@
 
 a lightweight crawl framework written in go
 
-coding with a little bit rush, later will add more features eg: mock ua/ url caching
 
 # Install
 
@@ -65,6 +64,11 @@ coding with a little bit rush, later will add more features eg: mock ua/ url cac
 
 
 # Change log
+
+## v1.0.1
+
+* [ADDED] url cache feature
+* [ADDED] page encode convert feature
 
 ## v1.0.0.alpha (2019-10-05 22:22 UTC+8:00)
 
