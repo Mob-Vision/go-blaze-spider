@@ -13,7 +13,10 @@ a lightweight crawl framework written in go
     // Configuare crawl task options 
     job51Opts := []TaskOpt{
         TaskOptEnableCookie(true),
-        TaskOptGapLimit(100),
+        TaskOptGapLimit(5000),
+        TaskOptCache("cache"),
+        TaskOptProxy([]string{"127.0.0.1:8700"}),
+        TaskOptSrcCharset("gbk"),
         TaskOptDomains([]string{"www.51job.com", "search.51job.com", "jobs.51job.com"}),
     }
     // Craete new task handler and passing options，NewTaskHandler(name string,entry string,opts ...opts）
