@@ -25,6 +25,8 @@ type TaskHandler struct {
 	Name            string
 	Entry           string
 	GapLimit        int
+	GapLimitMin     int
+	GapLimitMax     int
 	IdleLimit       int
 	WorkerLimit     int
 	SrcCharset      string
@@ -61,6 +63,7 @@ func (t *TaskHandler) Handle() {
 			t.request(v)
 			t.QueueProcessNum++
 			fmt.Println("total: ", t.QueueTotalNum, " process:", t.QueueProcessNum)
+
 			time.Sleep(time.Millisecond * time.Duration(t.GapLimit))
 		default:
 			time.Sleep(time.Millisecond * time.Duration(t.IdleLimit))
@@ -195,6 +198,15 @@ func TaskOptGapLimit(num int) TaskOpt {
 	return func(handler *TaskHandler) {
 		if num > 0 {
 			handler.GapLimit = num
+		}
+	}
+}
+
+func TaskOptGapLimitRandom(min int, max int) TaskOpt {
+	return func(handler *TaskHandler) {
+		if min > 0 && max > 0 {
+			handler.GapLimitMax = max
+			handler.GapLimitMin = min
 		}
 	}
 }
