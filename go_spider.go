@@ -10,6 +10,7 @@ import (
 	"github.com/imroc/req"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	net_url "net/url"
 	"os"
 	"strings"
@@ -64,7 +65,11 @@ func (t *TaskHandler) Handle() {
 			t.QueueProcessNum++
 			fmt.Println("total: ", t.QueueTotalNum, " process:", t.QueueProcessNum)
 
-			time.Sleep(time.Millisecond * time.Duration(t.GapLimit))
+			if t.GapLimitMin > 0 && t.GapLimitMax > 0 {
+				time.Sleep(time.Millisecond * time.Duration(randomInt(t.GapLimitMin, t.GapLimitMax)))
+			} else {
+				time.Sleep(time.Millisecond * time.Duration(t.GapLimit))
+			}
 		default:
 			time.Sleep(time.Millisecond * time.Duration(t.IdleLimit))
 		}
@@ -312,4 +317,8 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func randomInt(min, max int) int {
+	return min + rand.Intn(max-min)
 }
