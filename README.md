@@ -94,6 +94,19 @@ github.com/axgle/mahonia
 
 **character set converter**
 
+# Disclaimer
+
+All downloads and use of the software (bennya8/go-spider) are deemed to have been read carefully and fully agree to the following disclaimer:
+
+The software (bennya8/go-spider) is for personal learning and communication purposes only and is strictly prohibited for commercial and non-defective purposes.
+
+The author of the software (bennya8/go-spider) assumes no responsibility for any commercial activity or non-use, and all risks will be borne by him or her.
+
+The software (bennya8/go-spider), except for the terms of service, any accidents, negligence, contract damage, defects, copyright or other intellectual property infringement caused by improper use of the software, and any damage caused by the software, the software The author is not responsible and does not assume any legal responsibility.
+
+For issues not covered by this statement, please refer to relevant national laws and regulations. When this statement conflicts with relevant national laws and regulations, the national laws and regulations shall prevail.
+
+Copyright of this software and its right of modification, renewal and final interpretation are owned by the author of the software (bennya8/go-spider).
 
 
 
