@@ -2,8 +2,6 @@
 
 一个用 Golang 实现的轻量级爬虫框架
 
-项目临时写得有点急促，会结合公司使用情况慢慢完善功能，例如mock ua，url缓存，storage方式等
-
 # 安装
 
 > go get github.com/bennya8/go-spider
