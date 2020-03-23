@@ -1,37 +1,41 @@
-中文 | [English](/README_EN.md)
+English | [中文](/README.md)
 
-# 轻量爬虫框架
+# A lightweight crawl go framework
 
-一个用 Golang 实现的轻量级爬虫框架
+a lightweight crawl framework written in go
 
-# 安装
+
+# Install
 
 > go get github.com/bennya8/go-spider
 
-# 使用说明
+# Usage
 
 ```golang
-    // 配置爬虫任务选项
+    // Configuare crawl task options 
     job51Opts := []TaskOpt{
         TaskOptEnableCookie(true),
-        TaskOptGapLimit(100),
+        TaskOptGapLimit(5000),
+        TaskOptCache("cache"),
+        TaskOptProxy([]string{"127.0.0.1:8700"}),
+        TaskOptSrcCharset("gbk"),
         TaskOptDomains([]string{"www.51job.com", "search.51job.com", "jobs.51job.com"}),
     }
-    // 创建爬虫任务，NewTaskHandler（命名，入口，选项配置）
+    // Craete new task handler and passing options，NewTaskHandler(name string,entry string,opts ...opts）
     job51 := NewTaskHandler("job51", "https://www.51job.com", job51Opts...)
 
-    // 发起链接前回调
+    // Before request event
     job51.OnRequest(func(url string, header *req.Header, param *req.Param, err error) {
         fmt.Println(url, header, param, err)
     })
 
-    // 发起链接后回调
+    // After request event
     job51.OnResponse(func(resp *req.Resp, err error) {
         fmt.Println(resp, err)
     })
     
-    // DOM事件注册查询
-    //可多个selection嵌套，具体可查看（github.com/PuerkitoBio/goquery）使用方法
+    // Dom search 
+    // allowing nest selection, check （github.com/PuerkitoBio/goquery）to get more example
     job51.OnQuery(".cn.hlist a", func(url string, selection *goquery.Selection) {
         selection.Each(func(i int, selection *goquery.Selection) {
             href, exists := selection.Attr("href")
@@ -52,27 +56,33 @@
         })
     })
     
-    // 创建蜘蛛主线程
+    // create main spider thread
     spider := NewGoSpider()
     
-    // 注册任务
+    // register current task to the main spider thread
+    // supported muti-tasking
     spider.AddTask(job51)
 
-    // 执行
+    // execution 
     spider.Run()
 ```
 
 
-# 更新日志
+# Change log
+
+## v1.0.1
+
+* [ADDED] url cache feature
+* [ADDED] page encode convert feature
 
 ## v1.0.0.alpha (2019-10-05 22:22 UTC+8:00)
 
-* 搭建框架雏形
-* [TODO]增加访问url文件缓存
+* build framework skeleton
+* [TODO] mock ua/ url caching
 
-# 第三方依赖
+# 3rd dependencies
 
-- github.com/imroc/req -- 高效的HTTP request库
-- github.com/PuerkitoBio/goquery - DOM检索解析器
-- github.com/axgle/mahonia - gbk转换utf8 字符编码器
+- github.com/imroc/req -- an effective go http request library
+- github.com/PuerkitoBio/goquery - dom parser
+- github.com/axgle/mahonia - charset converter
 
