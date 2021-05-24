@@ -6,7 +6,7 @@
 
 # 安装
 
-> go get github.com/bennya8/go-spider
+> go get github.com/bennya8/go-blaze-spider
 
 # 使用说明
 
