@@ -7,7 +7,7 @@ a lightweight crawl framework written in go
 
 # Install
 
-> go get github.com/bennya8/go-spider
+> go get github.com/bennya8/go-blaze-spider
 
 # Usage
 
