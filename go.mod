@@ -1,4 +1,4 @@
-module github.com/bennya8/go-spider
+module github.com/bennya8/go-blaze-spider
 
 go 1.12
 
