@@ -70,12 +70,16 @@ a lightweight crawl framework written in go
 
 # Change log
 
+## v1.0.2
+
+* [IMPROVE] request random timegap
+
 ## v1.0.1
 
 * [ADDED] url cache feature
 * [ADDED] page encode convert feature
 
-## v1.0.0.alpha (2019-10-05 22:22 UTC+8:00)
+## v1.0.0.alpha
 
 * build framework skeleton
 * [TODO] mock ua/ url caching
