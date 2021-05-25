@@ -11,62 +11,134 @@ a lightweight crawl framework written in go
 
 # Usage
 
-```golang
-    // Configuare crawl task options 
-    job51Opts := []TaskOpt{
-        TaskOptEnableCookie(true),
-        TaskOptGapLimit(5000),
-        TaskOptCache("cache"),
-        TaskOptProxy([]string{"127.0.0.1:8700"}),
-        TaskOptSrcCharset("gbk"),
-        TaskOptDomains([]string{"www.51job.com", "search.51job.com", "jobs.51job.com"}),
-    }
-    // Craete new task handler and passing options，NewTaskHandler(name string,entry string,opts ...opts）
-    job51 := NewTaskHandler("job51", "https://www.51job.com", job51Opts...)
+@SEE https://github.com/bennya8/go-blaze-spider-example
 
-    // Before request event
-    job51.OnRequest(func(url string, header *req.Header, param *req.Param, err error) {
-        fmt.Println(url, header, param, err)
-    })
+```go
+package main
 
-    // After request event
-    job51.OnResponse(func(resp *req.Resp, err error) {
-        fmt.Println(resp, err)
-    })
-    
-    // Dom search 
-    // allowing nest selection, check （github.com/PuerkitoBio/goquery）to get more example
-    job51.OnQuery(".cn.hlist a", func(url string, selection *goquery.Selection) {
-        selection.Each(func(i int, selection *goquery.Selection) {
-            href, exists := selection.Attr("href")
-            if exists {
-                job51.Visit(href)
-            }
-        })
-    })
+import (
+	"database/sql"
+	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	go_blase_spider "github.com/bennya8/go-blaze-spider"
+	"github.com/imroc/req"
+	_ "github.com/mattn/go-sqlite3"
+	"log"
+)
 
-    job51.OnQuery(".dw_table .el", func(url string, selection *goquery.Selection) {
-        selection.Each(func(i int, selection *goquery.Selection) {
-            selection.Find("p.t1 a").Each(func(i int, selection *goquery.Selection) {
-                href, exists := selection.Attr("href")
-                if exists {
-                    job51.Visit(href)
-                }
-            })
-        })
-    })
-    
-    // create main spider thread
-    spider := NewGoSpider()
-    
-    // register current task to the main spider thread
-    // supported muti-tasking
-    spider.AddTask(job51)
+var (
+	db  *sql.DB
+	err error
+)
 
-    // execution 
-    spider.Run()
+func init() {
+	db, err = sql.Open("sqlite3", "db/stackoverflow.db")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	createTable()
+}
+
+func createTable() {
+
+	sql := `CREATE TABLE "stackoverflow_job" ("id" integer,"logo" varchar,"title" varchar,"firm" varchar,"summary" text, PRIMARY KEY (id))`
+	_, err := db.Exec(sql)
+	if err != nil {
+		log.Println(err)
+	}
+}
+func main() {
+
+	spiderOps := []go_blase_spider.TaskOpt{
+		go_blase_spider.TaskOptEnableCookie(true),
+		//go_spider.TaskOptSrcCharset("gbk"),
+		go_blase_spider.TaskOptGapLimitRandom(500, 5000),
+		go_blase_spider.TaskOptGapLimit(1000),
+		//go_spider.TaskOptProxy([]string{"127.0.0.1:8700"}),
+		go_blase_spider.TaskOptCache("cache"),
+		// domain white list
+		go_blase_spider.TaskOptDomains([]string{"stackoverflow.com", "www.stackoverflow.com"}),
+	}
+
+	// spider entry point
+	task := go_blase_spider.NewTaskHandler("stackoverflow", "https://stackoverflow.com/jobs", spiderOps...)
+
+	// setting up fake ua
+	//task.Headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+	//task.Headers["Cookie"] = `uu=eyJpZCI6InV1N2JlNzkwMDVkYmMyNGYwOTk3ZDMiLCJwcmVmZXJlbmNlcyI6eyJmaW5kX2luY2x1ZGVfYWR1bHQiOmZhbHNlfX0=; adblk=adblk_no; session-id=131-6048916-9533330; session-id-time=2252674724; csm-hit=tb:X3AS0B8X80FQBMSJNNAZ+s-X3AS0B8X80FQBMSJNNAZ|1621954740210&t:1621954740210&adb:adblk_no`
+	//task.Headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1"
+
+	// callback before each request
+	task.OnRequest(func(url string, header req.Header, param req.Param, err error) {
+		fmt.Println("OnRequest", url, err)
+	})
+
+	// callback after each request
+	task.OnResponse(func(url string, resp *req.Resp, err error) {
+		fmt.Println("OnResponse", url, err)
+	})
+
+	// LOGIC START
+
+	prefix := "https://stackoverflow.com"
+
+	// 1. fetch job list cell.
+	task.OnQuery(".listResults", func(url string, selection *goquery.Selection) {
+
+		selection.Each(func(i int, selection *goquery.Selection) {
+			selection.Find(".grid").Each(func(i int, selection *goquery.Selection) {
+
+				logo, _ := selection.Find(".w48.h48.bar-sm").Attr("src")
+				title := selection.Find(".mb4.fc-black-800.fs-body3 a").Text()
+				titleUrl, exist := selection.Find(".mb4.fc-black-800.fs-body3 a").Attr("href")
+				if exist {
+					task.Visit(prefix + titleUrl)
+				}
+
+				fmt.Println(logo)
+				fmt.Println(title)
+
+				// writing record to table with sqlite.
+				stmt, err := db.Prepare("INSERT INTO stackoverflow_job(logo, title) values (?,?)")
+				if err != nil {
+					fmt.Println(err)
+				}
+				rs, err := stmt.Exec(logo, title)
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Println(rs)
+			})
+		})
+	})
+
+	// 1.2 simulate click next button
+	task.OnQuery(".s-pagination a.s-pagination--item", func(url string, selection *goquery.Selection) {
+		last := selection.Last()
+		nextUrl, exist := last.Attr("href")
+		if exist {
+			task.Visit(prefix + nextUrl)
+		}
+	})
+
+	// 2. fetch job detail
+
+	// LOGIC END
+
+	// create main spider
+	spider := go_blase_spider.NewGoSpider()
+
+	// adding crawl task to main spider
+	spider.AddTask(task)
+
+	// execution
+	spider.Run()
+
+}
+
 ```
 
+![alt 属性文本](https://github.com/bennya8/go-blaze-spider-example/blob/master/screenshot/WX20210525-233428.png)
 
 # Change log
 
