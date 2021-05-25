@@ -1,4 +1,4 @@
-package go_spider
+package go_blaze_spider
 
 import (
 	"bytes"
@@ -34,9 +34,10 @@ type TaskHandler struct {
 	reqCb           OnRequestCallback
 	rspCb           OnResponseCallback
 	queryCbs        map[string]OnQueryCallback
+	itemCb          OnItemCallback
 	Http            *req.Req
-	Headers         *req.Header
-	Params          *req.Param
+	Headers         req.Header
+	Params          req.Param
 	Domains         []string
 	Proxies         []string
 	Queue           chan string
@@ -53,6 +54,10 @@ func (t *TaskHandler) OnResponse(cb OnResponseCallback) {
 	t.rspCb = cb
 }
 
+func (t *TaskHandler) OnItem(cb OnItemCallback) {
+	t.itemCb = cb
+}
+
 func (t *TaskHandler) OnQuery(selector string, cb OnQueryCallback) {
 	t.queryCbs[selector] = cb
 }
@@ -61,19 +66,27 @@ func (t *TaskHandler) Handle() {
 	for {
 		select {
 		case v := <-t.Queue:
+
 			t.request(v)
 			t.QueueProcessNum++
 			fmt.Println("total: ", t.QueueTotalNum, " process:", t.QueueProcessNum)
 
-			if t.GapLimitMin > 0 && t.GapLimitMax > 0 {
-				time.Sleep(time.Millisecond * time.Duration(randomInt(t.GapLimitMin, t.GapLimitMax)))
-			} else {
-				time.Sleep(time.Millisecond * time.Duration(t.GapLimit))
+			cacheId := t.getCacheId(v)
+			if !fileExists(cacheId) {
+				if t.GapLimitMin > 0 && t.GapLimitMax > 0 {
+					time.Sleep(time.Millisecond * time.Duration(randomInt(t.GapLimitMin, t.GapLimitMax)))
+				} else {
+					time.Sleep(time.Millisecond * time.Duration(t.GapLimit))
+				}
 			}
 		default:
 			time.Sleep(time.Millisecond * time.Duration(t.IdleLimit))
 		}
 	}
+}
+
+func (t *TaskHandler) getCacheId(url string) string {
+	return t.CachePath + "/" + cryptmd5(url) + ".cache"
 }
 
 func (t *TaskHandler) request(url string) {
@@ -102,7 +115,7 @@ func (t *TaskHandler) request(url string) {
 		return
 	}
 
-	cacheId := t.CachePath + "/" + cryptmd5(url) + ".cache"
+	cacheId := t.getCacheId(url)
 
 	if len(t.CachePath) > 0 {
 		err := os.MkdirAll(t.CachePath, os.ModePerm)
@@ -113,6 +126,11 @@ func (t *TaskHandler) request(url string) {
 
 		if fileExists(cacheId) {
 			dat, err := ioutil.ReadFile(cacheId)
+
+			if t.itemCb != nil {
+				t.itemCb(url, dat)
+			}
+
 			doc, err := goquery.NewDocumentFromReader(bytes.NewBufferString(string(dat)))
 			if err != nil {
 				fmt.Println(err)
@@ -150,6 +168,10 @@ func (t *TaskHandler) request(url string) {
 	if len(t.CachePath) > 0 {
 		err := ioutil.WriteFile(cacheId, []byte(content), os.ModePerm)
 		fmt.Println(err)
+	}
+
+	if t.itemCb != nil {
+		t.itemCb(url, []byte(content))
 	}
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBufferString(content))
@@ -242,8 +264,8 @@ func NewTaskHandler(name string, entry string, opts ...TaskOpt) *TaskHandler {
 		Name:            name,
 		Entry:           entry,
 		Http:            req.New(),
-		Headers:         &req.Header{},
-		Params:          &req.Param{},
+		Headers:         req.Header{},
+		Params:          req.Param{},
 		Queue:           make(chan string),
 		QueueTotalNum:   0,
 		QueueProcessNum: 0,
@@ -266,9 +288,10 @@ func NewTaskHandler(name string, entry string, opts ...TaskOpt) *TaskHandler {
 	return taskHandler
 }
 
-type OnRequestCallback func(url string, header *req.Header, param *req.Param, err error)
+type OnRequestCallback func(url string, header req.Header, param req.Param, err error)
 type OnResponseCallback func(url string, rsp *req.Resp, err error)
 type OnQueryCallback func(url string, selection *goquery.Selection)
+type OnItemCallback func(url string, content []byte)
 type OnErrorCallback func(msg string, err error)
 
 type GoSpider struct {
